@@ -21,7 +21,7 @@ const setError = function (message, order_id, redirectUrl) {
   store.dispatch('mollie/postOrderComment', order_comment_data)
   store.dispatch('checkout/setThankYouPage', false)
   router.push(localizedRoute('/', redirectUrl))
-} 
+}
 
 export function afterRegistration ({ Vue, config }) {
 
@@ -34,7 +34,7 @@ export function afterRegistration ({ Vue, config }) {
       if(resp.code !== 200){
         throw new Error("Could not fetch backend order details")
       }
-      const cartTotal = store.getters['cart/totals'].find(seg => seg.code === 'grand_total').value.toFixed(2);
+      const cartTotal = store.getters['cart/getTotals'].find(seg => seg.code === 'grand_total').value.toFixed(2);
       const hashData = {
         hash: resp.result.hash,
         cart_total: cartTotal,
@@ -64,7 +64,7 @@ export function afterRegistration ({ Vue, config }) {
         .then(mollieResp => {
           if (mollieResp.code !== 200) {
             throw new Error("API extension VS failed")
-          }        
+          }
           if(mollieResp.result.hasOwnProperty('status') && typeof mollieResp.result.status !== "string") {
             throw new Error("API Mollie failed")
           }
@@ -150,7 +150,7 @@ export function afterRegistration ({ Vue, config }) {
         Vue.prototype.$bus.$on('order-after-placed', onAfterPlaceOrderMollie)
         Vue.prototype.$bus.$on('checkout-before-placeOrder', placeOrder)
         Logger.info('checkout-before-placeOrder', 'Mollie')()
-    
+
         const PaymentReview = Vue.extend(MolliePaymentReview)
         const paymentReviewInstance = (new PaymentReview({
           propsData: {
@@ -161,7 +161,7 @@ export function afterRegistration ({ Vue, config }) {
         }))
         paymentReviewInstance.$mount('#checkout-order-review-additional')
       } else {
-        correctPaymentMethod = false        
+        correctPaymentMethod = false
       }
     })
   }

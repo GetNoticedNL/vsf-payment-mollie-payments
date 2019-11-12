@@ -79,7 +79,7 @@ export const actions: ActionTree<MollieState, any> = {
         },
         body: JSON.stringify(params)
     })
-    .then(resp => { 
+    .then(resp => {
       return resp.json()
     })
   },
@@ -95,14 +95,14 @@ export const actions: ActionTree<MollieState, any> = {
         },
         body: JSON.stringify(payload)
     })
-    .then(resp => { 
+    .then(resp => {
       return resp.json()
-    }) 
+    })
   },
 
   createPayment ({ rootState, rootGetters }, payload ) {
     let fetchUrl = rootState.config.mollie.endpoint + '/post-payment'
-    let total = rootGetters['cart/totals'].find(seg => seg.code === 'grand_total').value.toFixed(2)
+    let total = rootGetters['cart/getTotals'].find(seg => seg.code === 'grand_total').value.toFixed(2)
 
     let params = {
       amount: {
@@ -127,19 +127,19 @@ export const actions: ActionTree<MollieState, any> = {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(params)
-    }).then(resp => { 
+    }).then(resp => {
       return resp.json()
     })
   },
 
   setMollieTransactionData ({ rootState }, payload ) {
     let fetchUrl = rootState.config.mollie.endpoint + '/set-mollie-transaction-data'
-    let params = { 
+    let params = {
       "order": {
         "entity_id": payload.order_id,
       },
       "mollie_transaction_id": payload.transaction_id,
-      "mollie_secret_hash": payload.hash  
+      "mollie_secret_hash": payload.hash
     }
 
     return fetch(fetchUrl, {
@@ -150,14 +150,14 @@ export const actions: ActionTree<MollieState, any> = {
         },
         body: JSON.stringify(params)
     })
-    .then(resp => { 
+    .then(resp => {
       return resp.json()
-    }) 
+    })
   },
 
   postOrderComment ({ rootState }, payload ) {
     let fetchUrl = rootState.config.mollie.endpoint + '/order-comments'
-    let params = { 
+    let params = {
       order_id: payload.order_id,
       order_comment: {
         "statusHistory": {
@@ -179,7 +179,7 @@ export const actions: ActionTree<MollieState, any> = {
         },
         body: JSON.stringify(params)
     })
-    .then(resp => { 
+    .then(resp => {
       return resp.json()
     })
   },
@@ -196,7 +196,7 @@ export const actions: ActionTree<MollieState, any> = {
         },
         body: JSON.stringify(params)
     })
-    .then(resp => { 
+    .then(resp => {
       return resp.json()
     })
   },
@@ -225,7 +225,7 @@ export const actions: ActionTree<MollieState, any> = {
             "status": 400,
             "msg": "Hash is incorrect"
           }
-        }      
+        }
         return {
           "status": 200,
           "transaction_id": transaction_id,
@@ -233,7 +233,7 @@ export const actions: ActionTree<MollieState, any> = {
             "increment_id": resp.result.increment_id,
             "customer_email": resp.result.customer_email
           }
-        }                
+        }
       } else {
         return {
           "status": 400,
@@ -256,7 +256,7 @@ export const actions: ActionTree<MollieState, any> = {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(params)
-    }).then(resp => { 
+    }).then(resp => {
       return resp.json()
     })
   }
