@@ -23,7 +23,7 @@ const setError = function (message, order_id, redirectUrl) {
   router.push(localizedRoute('/', redirectUrl))
 }
 
-export function afterRegistration ({ Vue, config }) {
+export function afterRegistration ({ Vue, config, store, isServer }) {
 
   const onAfterPlaceOrderMollie = function (payload) {
     Vue.prototype.$bus.$emit('notification-progress-start',[i18n.t('Creating payment request'),'...'].join(''))
@@ -131,7 +131,7 @@ export function afterRegistration ({ Vue, config }) {
     }
   }
 
-  if (!Vue.prototype.$isServer) {
+  if (!isServer) {
     store.dispatch('mollie/fetchMethods')
 
     Vue.prototype.$bus.$on('checkout-payment-method-changed', paymentMethodDetails => {
