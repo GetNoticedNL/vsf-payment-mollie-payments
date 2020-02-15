@@ -113,7 +113,7 @@ export default {
         return orderDetails
       })
       .then(orderDetails => {
-        this.$store.dispatch('mollie/fetchPaymentStatus', orderDetails)
+        this.$store.dispatch('mollie/fetchPaymentOrderDetails', orderDetails)
           .then((resp) => {
             if (resp.status !== 200) {
               throw new Error('Could not fetch order details')
@@ -125,7 +125,7 @@ export default {
             return transactionData
           })
           .then(transactionData => {
-            this.$store.dispatch('mollie/getPayment', transactionData.transaction_id)
+            this.$store.dispatch('mollie/getPaymentStatus', transactionData.transaction_id)
               .then((mollieResp) => {
                 if (mollieResp.code !== 200) {
                   throw new Error('Could not fetch Mollie API payment details')

@@ -26,6 +26,7 @@ const setError = function (message, order_id, redirectUrl) {
 export function afterRegistration ({ Vue, config }) {
 
   const onAfterPlaceOrderMollie = function (payload) {
+    console.log(payload)
     Vue.prototype.$bus.$emit('notification-progress-start',[i18n.t('Creating payment request'),'...'].join(''))
     const order_id = payload.confirmation.backendOrderId
     // get increment id and hash
@@ -41,6 +42,7 @@ export function afterRegistration ({ Vue, config }) {
         order_id: payload.confirmation.backendOrderId,
         increment_id: resp.result.increment_id
       }
+      console.log(hashData)
       return hashData
     })
     .then(hashData => {
@@ -83,7 +85,7 @@ export function afterRegistration ({ Vue, config }) {
         })
         .then(transaction_data => {
           Logger.info('Transaction data', 'Mollie', transaction_data)()
-          store.dispatch('mollie/setMollieTransactionData', transaction_data)
+          store.dispatch('mollie/setTransactionData', transaction_data)
           .then((backendResp) => {
             if (backendResp.code !== 200) {
               throw new Error("'Payment is not linked to order")
@@ -145,6 +147,7 @@ export function afterRegistration ({ Vue, config }) {
       // unregister event as multiple payment methods are from mollie now, the order-after-placed emit could trigger multiple times when mollie methods would get selected
       Vue.prototype.$bus.$off('order-after-placed', onAfterPlaceOrderMollie)
       Vue.prototype.$bus.$off('checkout-before-placeOrder', placeOrder)
+      console.log(paymentMethodCode, store.getters['mollie/methods'])
       if (store.getters['mollie/methods'].some( issuer => issuer.code === paymentMethodCode)) {
         correctPaymentMethod = true
         Vue.prototype.$bus.$on('order-after-placed', onAfterPlaceOrderMollie)

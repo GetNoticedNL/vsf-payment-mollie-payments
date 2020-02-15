@@ -10,42 +10,43 @@ export const actions: ActionTree<MollieState, any> = {
   fetchMethods ({ rootState, commit, dispatch }) {
     return new Promise((resolve, reject) => {
       fetch(rootState.config.mollie.endpoint + '/payment-methods')
-        .then(res => {
-          res.json().then(json => {
-            if (json.count > 0) {
-              let molliePaymentMethods = []
-              let backendEnabledMolliePaymentMethods = rootState.config.orders.payment_methods_mapping
-              json._embedded.methods.forEach(method => {
-                if(has(backendEnabledMolliePaymentMethods, method.id)) {
-                  let paymentMethodConfig = {
-                    title: method.description,
-                    code: method.id,
-                    mollieMethod: true,
-                    cost: 0,
-                    costInclTax: 0,
-                    default: false,
-                    offline: false
-                  }
-                  molliePaymentMethods.push(paymentMethodConfig)
-                  commit(types.ADD_METHOD, paymentMethodConfig)
-                  if(method.id === 'ideal'){
-                    dispatch('fetchIdealIssuers')
-                  }
+      .then(res => {
+        res.json()
+        .then(json => {
+          if (json.count > 0) {
+            let molliePaymentMethods = []
+            let backendEnabledMolliePaymentMethods = rootState.config.orders.payment_methods_mapping
+            json._embedded.methods.forEach(method => {
+              if(has(backendEnabledMolliePaymentMethods, method.id)) {
+                let paymentMethodConfig = {
+                  title: method.description,
+                  code: method.id,
+                  mollieMethod: true,
+                  cost: 0,
+                  costInclTax: 0,
+                  default: false,
+                  offline: false
                 }
-              })
-              dispatch('payment/replaceMethods', molliePaymentMethods, { root: true })
-            }
-          })
+                molliePaymentMethods.push(paymentMethodConfig)
+                commit(types.ADD_METHOD, paymentMethodConfig)
+                if(method.id === 'ideal'){
+                  dispatch('fetchIssuers')
+                }
+              }
+            })
+            dispatch('checkout/replacePaymentMethods', molliePaymentMethods, { root: true })
+          }
         })
-        .catch(err => {
-          reject(err)
-        })
+      })
+      .catch(err => {
+        reject(err)
+      })
     })
   },
 
-  fetchIdealIssuers ({ rootState, commit, dispatch }) {
+  fetchIssuers ({ rootState, commit, dispatch }) {
     return new Promise((resolve, reject) => {
-      fetch(rootState.config.mollie.endpoint + '/ideal-issuers')
+      fetch(rootState.config.mollie.endpoint + '/fetch-issuers')
         .then(res => {
           res.json().then(json => {
             commit(types.CLEAR_ISSUERS)
@@ -132,8 +133,8 @@ export const actions: ActionTree<MollieState, any> = {
     })
   },
 
-  setMollieTransactionData ({ rootState }, payload ) {
-    let fetchUrl = rootState.config.mollie.endpoint + '/set-mollie-transaction-data'
+  setTransactionData ({ rootState }, payload ) {
+    let fetchUrl = rootState.config.mollie.endpoint + '/set-transaction-data'
     let params = {
       "order": {
         "entity_id": payload.order_id,
@@ -201,7 +202,7 @@ export const actions: ActionTree<MollieState, any> = {
     })
   },
 
-  fetchPaymentStatus ( { rootState }, payload ) {
+  fetchPaymentOrderDetails ( { rootState }, payload ) {
     let fetchUrl = rootState.config.mollie.endpoint + '/order-details'
     let order_id = payload.order_id
     let hash = payload.hash
@@ -243,7 +244,7 @@ export const actions: ActionTree<MollieState, any> = {
     })
   },
 
-  getPayment ({ rootState }, payload ) {
+  getPaymentStatus ({ rootState }, payload ) {
     let fetchUrl = rootState.config.mollie.endpoint + '/get-payment'
     let params = {
       id: payload
