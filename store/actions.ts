@@ -68,51 +68,12 @@ export const actions: ActionTree<MollieState, any> = {
     })
   },
 
-  fetchBackendOrderDetails ({ rootState }, order_id ) {
-    let fetchUrl = rootState.config.mollie.endpoint + '/order-details'
-    let params = { "order_id": order_id }
-
-    return fetch(fetchUrl, {
-        method: 'post',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(params)
-    })
-    .then(resp => {
-      return resp.json()
-    })
-  },
-
-  validateHash ({ rootState }, payload ) {
-    let fetchUrl = rootState.config.mollie.endpoint + '/validate-hash'
-
-    return fetch(fetchUrl, {
-        method: 'post',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(resp => {
-      return resp.json()
-    })
-  },
-
-  createPayment ({ rootState, rootGetters }, payload ) {
+  createPayment ({ rootState }, payload ) {
     let fetchUrl = rootState.config.mollie.endpoint + '/post-payment'
-    let total = rootGetters['cart/getTotals'].find(seg => seg.code === 'grand_total').value.toFixed(2)
-
     let params = {
-      amount: {
-        currency: rootState.config.i18n.currencyCode,
-        value: total
-      },
+      currency: rootState.config.i18n.currencyCode,
       order_id: payload.order_id,
-      hash: payload.hash,
-      description: i18n.t('Order #') + ' ' + payload.increment_id,
+      description: payload.payment_description,
       redirectUrl: location.origin + '/order-status/',
       method: rootState.checkout.paymentDetails.paymentMethod
     }
@@ -129,29 +90,6 @@ export const actions: ActionTree<MollieState, any> = {
       },
       body: JSON.stringify(params)
     }).then(resp => {
-      return resp.json()
-    })
-  },
-
-  setTransactionData ({ rootState }, payload ) {
-    let fetchUrl = rootState.config.mollie.endpoint + '/set-transaction-data'
-    let params = {
-      "order": {
-        "entity_id": payload.order_id,
-      },
-      "mollie_transaction_id": payload.transaction_id,
-      "mollie_secret_hash": payload.hash
-    }
-
-    return fetch(fetchUrl, {
-        method: 'post',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(params)
-    })
-    .then(resp => {
       return resp.json()
     })
   },
@@ -185,8 +123,8 @@ export const actions: ActionTree<MollieState, any> = {
     })
   },
 
-  decryptToken ({ rootState }, payload ) {
-    let fetchUrl = rootState.config.mollie.endpoint + '/decrypt-token'
+  getPaymentStatus ({ rootState }, payload ) {
+    let fetchUrl = rootState.config.mollie.endpoint + '/get-payment-status'
     let params = { "token": payload.token }
 
     return fetch(fetchUrl, {
@@ -200,66 +138,6 @@ export const actions: ActionTree<MollieState, any> = {
     .then(resp => {
       return resp.json()
     })
-  },
-
-  fetchPaymentOrderDetails ( { rootState }, payload ) {
-    let fetchUrl = rootState.config.mollie.endpoint + '/order-details'
-    let order_id = payload.order_id
-    let hash = payload.hash
-    let params = { "order_id": parseInt(order_id), "validatePayment": true }
-
-    return fetch(fetchUrl, {
-      method: 'post',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(params)
-    })
-    .then(resp => { return resp.json() })
-    .then((resp) => {
-      if (resp.code === 200) {
-        let transaction_id = resp.result.transaction_id
-        let regen_hash = resp.result.hash
-        if(regen_hash != hash){
-          return {
-            "status": 400,
-            "msg": "Hash is incorrect"
-          }
-        }
-        return {
-          "status": 200,
-          "transaction_id": transaction_id,
-          "order": {
-            "increment_id": resp.result.increment_id,
-            "customer_email": resp.result.customer_email
-          }
-        }
-      } else {
-        return {
-          "status": 400,
-          "msg": "Backend API call has failed"
-        }
-      }
-    })
-  },
-
-  getPaymentStatus ({ rootState }, payload ) {
-    let fetchUrl = rootState.config.mollie.endpoint + '/get-payment'
-    let params = {
-      id: payload
-    }
-
-    return fetch(fetchUrl, {
-      method: 'post',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(params)
-    }).then(resp => {
-      return resp.json()
-    })
   }
-
+  
 }

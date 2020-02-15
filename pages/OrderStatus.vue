@@ -96,7 +96,7 @@ export default {
       fetchPaymentStatusFail: false,
       fetchPaymentStatusFailMessage: '',
       afterTransactionMessage: '',
-      order: {}
+      order: null
     }
   },
   created () {
@@ -104,47 +104,15 @@ export default {
     const tokenData = {
       token: this.$route.params.order_token
     }
-    this.$store.dispatch('mollie/decryptToken', tokenData)
-      .then((resp) => {
-        if (resp.code !== 200) {
+    this.$store.dispatch('mollie/getPaymentStatus', tokenData)
+      .then((response) => {
+        if (response.code !== 200) {
           throw new Error('Invalid payment token')
         }
-        const orderDetails = resp.result
-        return orderDetails
-      })
-      .then(orderDetails => {
-        this.$store.dispatch('mollie/fetchPaymentOrderDetails', orderDetails)
-          .then((resp) => {
-            if (resp.status !== 200) {
-              throw new Error('Could not fetch order details')
-            }
-            const transactionData = {
-              order: resp.order,
-              transaction_id: resp.transaction_id
-            }
-            return transactionData
-          })
-          .then(transactionData => {
-            this.$store.dispatch('mollie/getPaymentStatus', transactionData.transaction_id)
-              .then((mollieResp) => {
-                if (mollieResp.code !== 200) {
-                  throw new Error('Could not fetch Mollie API payment details')
-                }
-                let result = {
-                  order: transactionData.order,
-                  payment_details: mollieResp.result
-                }
-                this.$store.commit('mollie/SET_PAYMENT_STATUS_FETCHED', true)
-                this.setPaymentStatus(result)
-              })
-              .catch((err) => {
-                this.setError(err.message)
-              })
-          })
-          .catch((err) => {
-            this.setError(err.message)
-          })
-      })
+        console.log(response.result)
+        this.$store.commit('mollie/SET_PAYMENT_STATUS_FETCHED', true)
+        this.setPaymentStatus(response.result)
+      })            
       .catch((err) => {
         this.setError(err.message)
       })
@@ -155,7 +123,7 @@ export default {
       this.paymentDetailsFetched = true
       this.order = result.order
       this.hasPaymentResult = true
-      this.paymentStatus = result.payment_details.status
+      this.paymentStatus = result.payment.status
 
       let successPaymentMessage = 'Your payment for this order is successfull, thank you for your purchase. We\'ll send the order confirmation and invoice to ' + this.order.customer_email + ' in a few moments'
       let pendingPaymentMessage = 'Your payment details for this order is pending, when we receive more information from the payment provider we will automatically update the payment status and inform you about it by email at ' + this.order.customer_email

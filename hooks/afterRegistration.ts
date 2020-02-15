@@ -28,95 +28,31 @@ export function afterRegistration ({ Vue, config }) {
   const onAfterPlaceOrderMollie = function (payload) {
     console.log(payload)
     Vue.prototype.$bus.$emit('notification-progress-start',[i18n.t('Creating payment request'),'...'].join(''))
-    const order_id = payload.confirmation.backendOrderId
-    // get increment id and hash
-    store.dispatch('mollie/fetchBackendOrderDetails', order_id)
-    .then(resp => {
-      if(resp.code !== 200){
-        throw new Error("Could not fetch backend order details")
+    const order_id = payload.confirmation.magentoOrderId
+    const payment_description = i18n.t('Order #') + ' ' + payload.confirmation.orderNumber
+    const payment_data = {
+      order_id: order_id,
+      payment_description: payment_description      
+    }
+    Logger.info('Payment data', 'Mollie', payment_data)()
+    store.dispatch('mollie/createPayment', payment_data)
+    .then(createPaymentResponse => {
+      if (createPaymentResponse.code !== 200) {
+        throw new Error(createPaymentResponse.result)
       }
-      const cartTotal = store.getters['cart/getTotals'].find(seg => seg.code === 'grand_total').value.toFixed(2);
-      const hashData = {
-        hash: resp.result.hash,
-        cart_total: cartTotal,
-        order_id: payload.confirmation.backendOrderId,
-        increment_id: resp.result.increment_id
+      const order_comment_data = {
+        order_id: createPaymentResponse.result.order_id,
+        order_comment: "Payment is created at Mollie for amount " + createPaymentResponse.result.amount,
+        status: "pending_payment"
       }
-      console.log(hashData)
-      return hashData
-    })
-    .then(hashData => {
-      Logger.info('Hash data', 'Mollie', hashData)()
-      store.dispatch('mollie/validateHash', hashData)
-      .then(hashResp => {
-        Logger.info('Hash validation result', 'Mollie', hashResp.result)()
-        if (hashResp.code !== 200) {
-          throw new Error("Hashes don't match")
-        }
-        const payment_data = {
-          increment_id: hashData.increment_id,
-          order_id: hashData.order_id,
-          hash: hashData.hash
-        }
-        return payment_data
-      })
-      .then(payment_data => {
-        Logger.info('Payment data', 'Mollie', payment_data)()
-        store.dispatch('mollie/createPayment', payment_data)
-        .then(mollieResp => {
-          if (mollieResp.code !== 200) {
-            throw new Error("API extension VS failed")
-          }
-          if(mollieResp.result.hasOwnProperty('status') && typeof mollieResp.result.status !== "string") {
-            throw new Error("API Mollie failed")
-          }
-          if(!mollieResp.result.hasOwnProperty('id')) {
-            throw new Error("No transaction id generated")
-          }
-          Logger.info('Payment result', 'Mollie', mollieResp.result)()
-          const transaction_data = {
-            order_id: payment_data.order_id,
-            transaction_id: mollieResp.result.id,
-            hash: payment_data.hash,
-            amount: Object.values(mollieResp.result.amount).reverse().join(' '),
-            payment_gateway_url: mollieResp.result._links.checkout.href
-          }
-          return transaction_data
-        })
-        .then(transaction_data => {
-          Logger.info('Transaction data', 'Mollie', transaction_data)()
-          store.dispatch('mollie/setTransactionData', transaction_data)
-          .then((backendResp) => {
-            if (backendResp.code !== 200) {
-              throw new Error("'Payment is not linked to order")
-            }
-            const order_comment_data = {
-              order_id: transaction_data.order_id,
-              order_comment: "Payment is created at Mollie for amount " + transaction_data.amount,
-              status: "pending_payment"
-            }
-            store.dispatch('mollie/postOrderComment', order_comment_data)
-            Vue.prototype.$bus.$emit('notification-progress-start', [i18n.t('Redirecting you to payment gateway'), '...'].join(''))
-            setTimeout(() => {
-              Logger.info('Sending user to Mollie', 'Mollie', transaction_data.payment_gateway_url)()
-              window.location.href = transaction_data.payment_gateway_url
-              Vue.prototype.$bus.$emit('notification-progress-stop')
-            }, 250)
-          })
-          .catch((err) => {
-            Vue.prototype.$bus.$emit('notification-progress-stop')
-            setError(err.message, order_id, config.mollie.error_url)
-          })
-        })
-        .catch((err) => {
-          Vue.prototype.$bus.$emit('notification-progress-stop')
-          setError(err.message, order_id, config.mollie.error_url)
-        })
-      })
-      .catch((err) => {
+      Logger.info('Transaction data as Order Comment', 'Mollie', order_comment_data)()
+      store.dispatch('mollie/postOrderComment', order_comment_data)
+      Vue.prototype.$bus.$emit('notification-progress-start', [i18n.t('Redirecting you to payment gateway'), '...'].join(''))
+      setTimeout(() => {
+        Logger.info('Sending user to Payment Gateway', 'Mollie', createPaymentResponse.result.payment_gateway_url)()
+        window.location.href = createPaymentResponse.result.payment_gateway_url
         Vue.prototype.$bus.$emit('notification-progress-stop')
-        setError(err.message, order_id, config.mollie.error_url)
-      })
+      }, 250)
     })
     .catch((err) => {
       Vue.prototype.$bus.$emit('notification-progress-stop')
