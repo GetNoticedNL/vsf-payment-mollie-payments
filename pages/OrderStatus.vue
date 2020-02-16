@@ -104,13 +104,12 @@ export default {
     const tokenData = {
       token: this.$route.params.order_token
     }
-    this.$store.dispatch('mollie/getPaymentStatus', tokenData)
+    this.$store.dispatch('payment-service/getPaymentStatus', tokenData)
       .then((response) => {
         if (response.code !== 200) {
           throw new Error('Invalid payment token')
         }
-        console.log(response.result)
-        this.$store.commit('mollie/SET_PAYMENT_STATUS_FETCHED', true)
+        this.$store.commit('payment-service/SET_PAYMENT_STATUS_FETCHED', true)
         this.setPaymentStatus(response.result)
       })            
       .catch((err) => {
@@ -160,7 +159,7 @@ export default {
     },
     setError (message) {
       this.$bus.$emit('notification-progress-stop')
-      Logger.error(message, 'Mollie')()
+      Logger.error(message, 'Payment service')()
     }
   },
   components: {

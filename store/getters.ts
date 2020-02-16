@@ -1,18 +1,20 @@
-import { MollieState } from '../types/MollieState'
+import { PaymentServiceState } from '../types/PaymentServiceState'
 import { GetterTree } from 'vuex'
-import { strictEqual } from 'assert'
 
-export const getters: GetterTree<MollieState, any> = {
-  paymentIssuers (state) {
-    return state.mollie_issuers
+export const getters: GetterTree<PaymentServiceState, any> = {
+  getIssuers (state) {
+    return state.issuers
   },
-  methods (state) {
-    return state.mollie_methods
+  getPaymentMethods (state) {
+    return state.payment_methods
   },
-  issuer (state) {
+  getIssuer (state) {
     return state.issuer
-  },
+  },  
   paymentMethodDetails (state) {
     return state.paymentMethod
+  },
+  getPaymentStatusFetched (state) {
+    return state.paymentStatusFetched
   }
 }

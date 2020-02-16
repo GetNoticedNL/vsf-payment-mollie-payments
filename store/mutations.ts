@@ -1,19 +1,18 @@
 import { MutationTree } from 'vuex'
 import * as types from './mutation-types'
-import { type } from 'os'
 
 export const mutations: MutationTree<any> = {
   [types.ADD_METHOD] (state, payload) {
-    state.mollie_methods.push(payload)
+    state.payment_methods.push(payload)
   },
   [types.ADD_ISSUER] (state, payload) {
-    state.mollie_issuers.push(payload)
+    state.issuers.push(payload)
   },
   [types.CLEAR_ISSUERS] (state) {
-    state.mollie_issuers = []
+    state.issuers = []
   },
   [types.SET_ISSUER] (state, payload) {
-    let result = state.mollie_issuers.filter(issuer => {
+    let result = state.issuers.filter(issuer => {
       return issuer.id === payload
     })
     if (result.length > 0) {

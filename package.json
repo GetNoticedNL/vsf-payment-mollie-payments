@@ -1,7 +1,7 @@
 {
-  "name": "@getnoticed/vsf-payment-getnoticed-mollie",
+  "name": "@getnoticed/vsf-payment-service",
   "version": "1.0.0",
-  "description": "Mollie Payments Vue Storefront payment integration module",
+  "description": "Payment service for Vue Storefront",
   "main": "index.js",
   "author": "Get.Noticed",
   "license": "MIT",

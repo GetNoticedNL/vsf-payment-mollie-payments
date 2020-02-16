@@ -1,75 +1,77 @@
-import { MollieState } from '../types/MollieState'
+import { PaymentServiceState } from '../types/PaymentServiceState'
 import { ActionTree } from 'vuex'
 import * as types from './mutation-types'
 import fetch from 'isomorphic-fetch'
 import i18n from '@vue-storefront/i18n'
 import has from 'lodash-es/has'
+import { router } from '@vue-storefront/core/app';
+import { localizedRoute} from '@vue-storefront/core/lib/multistore'
 import { Logger } from '@vue-storefront/core/lib/logger'
 
-export const actions: ActionTree<MollieState, any> = {
-  fetchMethods ({ rootState, commit, dispatch }) {
-    return new Promise((resolve, reject) => {
-      fetch(rootState.config.mollie.endpoint + '/payment-methods')
-      .then(res => {
-        res.json()
-        .then(json => {
-          if (json.count > 0) {
-            let molliePaymentMethods = []
-            let backendEnabledMolliePaymentMethods = rootState.config.orders.payment_methods_mapping
-            json._embedded.methods.forEach(method => {
-              if(has(backendEnabledMolliePaymentMethods, method.id)) {
-                let paymentMethodConfig = {
-                  title: method.description,
-                  code: method.id,
-                  mollieMethod: true,
-                  cost: 0,
-                  costInclTax: 0,
-                  default: false,
-                  offline: false
-                }
-                molliePaymentMethods.push(paymentMethodConfig)
-                commit(types.ADD_METHOD, paymentMethodConfig)
-                if(method.id === 'ideal'){
-                  dispatch('fetchIssuers')
-                }
-              }
-            })
-            dispatch('checkout/replacePaymentMethods', molliePaymentMethods, { root: true })
+export const actions: ActionTree<PaymentServiceState, any> = {
+  async fetchPaymentMethods ({ rootState, commit, dispatch }) {
+    try {
+      const fetchPaymentMethods = await fetch(rootState.config.paymentService.endpoint + '/payment-methods')
+      const paymentMethodsJson = await fetchPaymentMethods.json()
+      
+      if (paymentMethodsJson.count === 0) {
+        throw new Error('No payment methods configured')
+      }
+      let paymentMethods = []
+      let backendEnabledPaymentMethods = rootState.config.orders.payment_methods_mapping
+      paymentMethodsJson._embedded.methods.forEach(method => {
+        if(has(backendEnabledPaymentMethods, method.id)) {
+          let paymentMethodConfig = {
+            title: method.description,
+            code: method.id,
+            image: method.image,
+            pspMethod: true,
+            cost: 0,
+            costInclTax: 0,
+            default: false,
+            offline: false
           }
-        })
+          paymentMethods.push(paymentMethodConfig)
+          commit(types.ADD_METHOD, paymentMethodConfig)
+        }
       })
-      .catch(err => {
-        reject(err)
-      })
-    })
+      if (paymentMethods.some( paymentMethod => paymentMethod.code === 'ideal' )) {
+        dispatch('fetchIssuers')
+      }
+      dispatch('checkout/replacePaymentMethods', paymentMethods, { root: true })
+    }
+    catch (err) {
+      Logger.info('Can\'t fetch payment methods', 'Payment service', err)()
+      return
+    }
   },
 
-  fetchIssuers ({ rootState, commit, dispatch }) {
-    return new Promise((resolve, reject) => {
-      fetch(rootState.config.mollie.endpoint + '/fetch-issuers')
-        .then(res => {
-          res.json().then(json => {
-            commit(types.CLEAR_ISSUERS)
-            if (json.issuers.length > 0) {
-              json.issuers.forEach(issuer => {
-                let issuerConfig = {
-                  name: issuer.name,
-                  id: issuer.id,
-                  image: issuer.image.size2x
-                }
-                commit(types.ADD_ISSUER, issuerConfig)
-              })
-            }
-          })
-        })
-        .catch(err => {
-          reject(err)
-        })
-    })
+  async fetchIssuers ({ rootState, commit }) {
+    try {
+      const fetchIssuers = await fetch(rootState.config.paymentService.endpoint + '/fetch-issuers')
+      const issuersJson = await fetchIssuers.json()
+      if (issuersJson.issuers.length === 0) {
+        throw new Error('No issuers')
+      }
+      commit(types.CLEAR_ISSUERS)
+      issuersJson.issuers.forEach(issuer => {
+        let { name, id, image } = issuer
+        let issuerConfig = {
+          name: name,
+          id: id,
+          image: image
+        }
+        commit(types.ADD_ISSUER, issuerConfig)
+      })
+    }
+    catch (err) {
+      Logger.info('Can\'t fetch issuers', 'Payment service', err)()
+      return
+    }
   },
 
   createPayment ({ rootState }, payload ) {
-    let fetchUrl = rootState.config.mollie.endpoint + '/post-payment'
+    let fetchUrl = rootState.config.paymentService.endpoint + '/post-payment'
     let params = {
       currency: rootState.config.i18n.currencyCode,
       order_id: payload.order_id,
@@ -80,7 +82,7 @@ export const actions: ActionTree<MollieState, any> = {
     if (rootState.checkout.paymentDetails.paymentMethod == 'ideal') {
       params['issuer'] = rootState.checkout.paymentDetails.paymentMethodAdditional.issuer
     }
-    Logger.info('Collected payment data. ', 'Mollie', params)()
+    Logger.info('Collected payment data. ', 'Payment service', params)()
 
     return fetch(fetchUrl, {
       method: 'post',
@@ -95,7 +97,7 @@ export const actions: ActionTree<MollieState, any> = {
   },
 
   postOrderComment ({ rootState }, payload ) {
-    let fetchUrl = rootState.config.mollie.endpoint + '/order-comments'
+    let fetchUrl = rootState.config.paymentService.endpoint + '/order-comments'
     let params = {
       order_id: payload.order_id,
       order_comment: {
@@ -124,7 +126,7 @@ export const actions: ActionTree<MollieState, any> = {
   },
 
   getPaymentStatus ({ rootState }, payload ) {
-    let fetchUrl = rootState.config.mollie.endpoint + '/get-payment-status'
+    let fetchUrl = rootState.config.paymentService.endpoint + '/get-payment-status'
     let params = { "token": payload.token }
 
     return fetch(fetchUrl, {
@@ -138,6 +140,27 @@ export const actions: ActionTree<MollieState, any> = {
     .then(resp => {
       return resp.json()
     })
+  },
+
+  setError ({ dispatch }, payload ) {
+    const { message, order_id, redirectUrl } = payload
+    console.log(payload)
+    Logger.error(message, 'Payment service')()
+    dispatch('notification/spawnNotification', {
+      type: 'error',
+      message: i18n.t('Payment is not created - ' + message),
+      action1: { label: i18n.t('OK') },
+      hasNoTimeout: true
+    },
+    {root: true})
+    const order_comment_data = {
+      order_id: order_id,
+      order_comment: 'Payment could not be created: ' + message,
+      status: "canceled"
+    }
+    dispatch('postOrderComment', order_comment_data)
+    dispatch('checkout/setThankYouPage', false, {root: true})
+    router.push(localizedRoute('/', redirectUrl))
   }
   
 }
