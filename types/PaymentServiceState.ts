@@ -3,12 +3,13 @@
 interface Issuer {
   name: string
   id: string
-  image: string
+  image: object
 }
 
 interface Method {
   title: string
-  code: string
+  code: string,
+  image: object,
   cost: number
   costInclTax: number
   default: boolean
@@ -20,9 +21,9 @@ interface Issuers extends Array<Issuer> {}
 
 interface Methods extends Array<Method> {}
 
-export interface MollieState {
-  mollie_methods: Methods
-  mollie_issuers: Issuers
+export interface PaymentServiceState {
+  payment_methods: Methods
+  issuers: Issuers
   issuer: Issuer | null
   paymentMethod: string
   paymentStatusFetched: boolean
