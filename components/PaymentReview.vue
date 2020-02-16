@@ -1,11 +1,10 @@
 <template>
   <div class="mb15 mt20 payment-cash-on-delivery-info-container">
     <div class="bg-cl-secondary px20 py20" style="text-align: center;">
-      <img src="/assets/payment/MollieLogoDark.svg" width="150">
       <p class="weight-700">{{ header }}</p>
       <p>{{ message }}</p>
       <span class="payment-method-details">
-        <img :src="getPaymentIcon(paymentMethodDetails.code)"> <span class="payment-method "> {{ paymentMethodDetails.title }}</span>
+        <img :src="paymentMethodDetails.image.svg" width="30"> <span class="payment-method "> {{ paymentMethodDetails.title }}</span>
       </span>
     </div>
   </div>
@@ -13,7 +12,7 @@
 
 <script>
 export default {
-  name: 'MolliePaymentReview',
+  name: 'PaymentReview',
   props: {
     header: {
       type: String,
@@ -26,11 +25,6 @@ export default {
     paymentMethodDetails: {
       type: Object,
       required: true
-    }
-  },
-  methods: {
-    getPaymentIcon (paymentCode) {
-      return '/assets/payment/methods/' + paymentCode + '.svg'
     }
   }
 }

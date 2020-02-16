@@ -16,6 +16,7 @@
 
 <script>
 import BaseSelect from 'theme/components/core/blocks/Form/BaseSelect'
+import { mapGetters } from 'vuex'
 
 export default {
   components: {
@@ -32,11 +33,12 @@ export default {
     }
   },
   computed: {
+    ...mapGetters('payment-service', ['getIssuers']),
     payment () {
       return this.$store.state.checkout.paymentDetails
     },
     idealIssuers () {
-      return this.$store.state.mollie.mollie_issuers.map((item) => {
+      return this.getIssuers.map((item) => {
         return {
           value: item.id,
           label: item.name
